@@ -1,3 +1,18 @@
+Metadata-Version: 2.4
+Name: voxcpm-http-service
+Version: 0.1.0
+Summary: Async multi-user HTTP service for VoxCPM TTS
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+Requires-Dist: fastapi<0.136,>=0.135.3
+Requires-Dist: sqlalchemy<2.1,>=2.0.49
+Requires-Dist: pydantic-settings<3,>=2.13.1
+Requires-Dist: uvicorn<0.45,>=0.44.0
+Requires-Dist: python-multipart<0.1,>=0.0.24
+Provides-Extra: dev
+Requires-Dist: httpx<0.29,>=0.28.1; extra == "dev"
+Requires-Dist: pytest<10,>=9.0.3; extra == "dev"
+
 # VoxCPM HTTP Service
 
 Async multi-user TTS service with SQLite, local file storage, reusable voice profiles, and server-side VoxCPM inference.

@@ -1,0 +1,2 @@
+[console_scripts]
+tts-worker = tts_service.worker.cli:main
