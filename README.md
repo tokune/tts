@@ -67,6 +67,15 @@ while True:
 
 Install the service plus the inference runtime on the GPU server, not on the local development machine.
 
+Create and activate a dedicated Conda environment before starting `uvicorn`. This repository uses a `src/` layout, so launching a system-wide `uvicorn` without first installing the package will fail with `ModuleNotFoundError: No module named 'tts_service'`.
+
+```bash
+conda create -n voxcpm_env python=3.11
+conda activate voxcpm_env
+cd /srv/tts
+pip install -e .
+```
+
 For the official VoxCPM runtime:
 
 ```bash
@@ -89,6 +98,9 @@ uvicorn tts_service.main:create_app --factory --host 0.0.0.0 --port 8000
 ```
 
 Start a separate worker process using the same environment.
+
+Activate `voxcpm_env` in every shell that starts the API or worker process.
+Do not mix interpreters, for example by installing the project into `voxcpm_env` and then starting `uvicorn` from a different Python environment.
 
 ## API Overview
 

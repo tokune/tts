@@ -32,7 +32,17 @@ TTS_SERVICE_PROVIDER=fake .venv/bin/uvicorn tts_service.main:create_app --factor
 ```
 
 **Production Mode (Official VoxCPM):**
-Ensure environment variables like `TTS_SERVICE_PROVIDER=voxcpm` and `TTS_SERVICE_VOXCPM_MODEL_PATH` are set before running via `uvicorn`.
+Create and activate the server runtime first:
+
+```bash
+conda create -n voxcpm_env python=3.11
+conda activate voxcpm_env
+cd /srv/tts
+pip install -e .
+pip install voxcpm
+```
+
+Then set environment variables like `TTS_SERVICE_PROVIDER=voxcpm` and `TTS_SERVICE_VOXCPM_MODEL_PATH` before running via `uvicorn`.
 
 ### Testing
 Run the full test suite using `pytest`:
