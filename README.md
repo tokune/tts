@@ -80,9 +80,9 @@ Set:
 export TTS_SERVICE_PROVIDER=voxcpm
 # Use either a real local model directory or a Hugging Face repo id such as openbmb/VoxCPM2
 export TTS_SERVICE_VOXCPM_MODEL_PATH=openbmb/VoxCPM2
-export TTS_SERVICE_DATABASE_URL=sqlite:////srv/tts/storage/app.db
+export TTS_SERVICE_DATABASE_URL=sqlite:////root/tts/storage/app.db
 export TTS_SERVICE_STORAGE_ROOT=/srv/tts/storage
-export TTS_SERVICE_SYSTEM_VOICES_MANIFEST_PATH=/srv/tts/system_voices.json
+export TTS_SERVICE_SYSTEM_VOICES_MANIFEST_PATH=/root/tts/system_voices.json
 ```
 
 Then run:
