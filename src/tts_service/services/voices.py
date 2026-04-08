@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
+from pathlib import Path
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -87,10 +89,35 @@ class VoiceService:
             sample_rate=None,
             duration_ms=None,
             consent_statement="system voice",
-            source_label=source_label or "system",
+            source_label=source_label or name,
             status="ready",
         )
         session.add(voice)
         session.commit()
         session.refresh(voice)
         return voice
+
+    def load_system_voices_from_manifest(self, session: Session, manifest_path: Path) -> None:
+        entries = json.loads(manifest_path.read_text(encoding="utf-8"))
+        for entry in entries:
+            source_label = str(entry.get("source_label") or entry["name"])
+            existing = session.scalar(
+                select(VoiceProfile).where(
+                    VoiceProfile.scope == "system",
+                    VoiceProfile.source_label == source_label,
+                )
+            )
+            if existing is not None:
+                continue
+
+            reference_path = Path(entry["audio_path"])
+            self.create_system_voice(
+                session=session,
+                name=str(entry["name"]),
+                clone_mode=str(entry.get("clone_mode", "clone")),
+                reference_audio_filename=reference_path.name,
+                reference_audio_content=reference_path.read_bytes(),
+                reference_text=str(entry["reference_text"]) if entry.get("reference_text") else None,
+                description=str(entry["description"]) if entry.get("description") else None,
+                source_label=source_label,
+            )

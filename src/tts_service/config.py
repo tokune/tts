@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     app_name: str = "VoxCPM HTTP Service"
     database_url: str = "sqlite:///./storage/app.db"
     storage_root: Path = Field(default=Path("./storage"))
+    system_voices_manifest_path: Path | None = None
     provider: str = "fake"
     voxcpm_model_path: str = "/srv/models/voxcpm"
     voxcpm_device_ids: list[int] = Field(default_factory=lambda: [0])

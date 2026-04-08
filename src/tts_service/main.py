@@ -44,6 +44,13 @@ def create_app(overrides: dict[str, Any] | None = None) -> FastAPI:
     app.state.job_service = JobService()
     app.state.provider = build_provider(settings)
 
+    with session_factory() as session:
+        if settings.system_voices_manifest_path is not None:
+            app.state.voice_service.load_system_voices_from_manifest(
+                session=session,
+                manifest_path=settings.system_voices_manifest_path,
+            )
+
     @app.middleware("http")
     async def db_session_middleware(request: Request, call_next):
         session = session_factory()
