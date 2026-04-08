@@ -4,6 +4,8 @@ from typing import Any
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+ROOT_ENV_FILE = Path(__file__).resolve().parents[2] / ".env"
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="TTS_SERVICE_", extra="ignore")
@@ -20,4 +22,4 @@ class Settings(BaseSettings):
 
 def build_settings(overrides: dict[str, Any] | None = None) -> Settings:
     data = dict(overrides or {})
-    return Settings(**data)
+    return Settings(_env_file=ROOT_ENV_FILE, **data)

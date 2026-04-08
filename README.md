@@ -35,6 +35,8 @@ python3 -m venv .venv
 .venv/bin/pip install -e ".[dev]"
 ```
 
+If you prefer file-based local configuration, copy `.env.example` to `.env` in the repository root. The service now loads that file automatically. Explicit `overrides` and exported shell variables still take precedence over `.env`.
+
 Run the API with the fake provider:
 
 ```bash
