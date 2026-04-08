@@ -67,6 +67,15 @@ while True:
 
 Install the service plus the inference runtime on the GPU server, not on the local development machine.
 
+Create and activate a dedicated Conda environment before starting `uvicorn`. This repository uses a `src/` layout, so launching a system-wide `uvicorn` without first installing the package will fail with `ModuleNotFoundError: No module named 'tts_service'`.
+
+```bash
+conda create -n voxcpm_env python=3.11
+conda activate voxcpm_env
+cd /srv/tts
+pip install -e .
+```
+
 For the official VoxCPM runtime:
 
 ```bash
@@ -80,6 +89,7 @@ export TTS_SERVICE_PROVIDER=voxcpm
 export TTS_SERVICE_VOXCPM_MODEL_PATH=/srv/models/VoxCPM2-3B
 export TTS_SERVICE_DATABASE_URL=sqlite:////srv/tts/storage/app.db
 export TTS_SERVICE_STORAGE_ROOT=/srv/tts/storage
+export TTS_SERVICE_SYSTEM_VOICES_MANIFEST_PATH=/srv/tts/system_voices.json
 ```
 
 Then run:
@@ -89,6 +99,9 @@ uvicorn tts_service.main:create_app --factory --host 0.0.0.0 --port 8000
 ```
 
 Start a separate worker process using the same environment.
+
+Activate `voxcpm_env` in every shell that starts the API or worker process.
+Do not mix interpreters, for example by installing the project into `voxcpm_env` and then starting `uvicorn` from a different Python environment.
 
 ## API Overview
 
@@ -140,6 +153,31 @@ curl -X POST http://127.0.0.1:8000/v1/jobs \
   -d '{"text":"hello world","voice_profile_id":"VOICE_ID"}'
 ```
 
+Create a queued job with the provider default voice:
+
+```bash
+curl -X POST http://127.0.0.1:8000/v1/jobs \
+  -H "Authorization: Bearer ${API_KEY}" \
+  -H 'Content-Type: application/json' \
+  -d '{"text":"hello world"}'
+```
+
+List voices to find a preset system voice:
+
+```bash
+curl http://127.0.0.1:8000/v1/voices \
+  -H "Authorization: Bearer ${API_KEY}"
+```
+
+Create a queued job with a preset system voice:
+
+```bash
+curl -X POST http://127.0.0.1:8000/v1/jobs \
+  -H "Authorization: Bearer ${API_KEY}" \
+  -H 'Content-Type: application/json' \
+  -d '{"text":"hello narrator","voice_profile_id":"SYSTEM_VOICE_ID"}'
+```
+
 Create a one-off clone job:
 
 ```bash
@@ -170,4 +208,5 @@ curl http://127.0.0.1:8000/v1/jobs/JOB_ID/audio \
 
 - The fake provider is the default and is intended for local API development and tests only.
 - The official `voxcpm` provider lazily loads the model at first synthesis call, so app startup does not force local model loading.
+- Set `TTS_SERVICE_SYSTEM_VOICES_MANIFEST_PATH` to a JSON file on the server if you want users to see preset system voices in `GET /v1/voices`.
 - `nanovllm_voxcpm` is wired as an alternate provider slot, but its runtime integration should be completed and validated on the target server before production use.
