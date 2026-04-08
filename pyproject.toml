@@ -1,0 +1,23 @@
+[project]
+name = "voxcpm-http-service"
+version = "0.1.0"
+description = "Async multi-user HTTP service for VoxCPM TTS"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.135.3,<0.136",
+  "sqlalchemy>=2.0.49,<2.1",
+  "pydantic-settings>=2.13.1,<3",
+  "uvicorn>=0.44.0,<0.45",
+  "python-multipart>=0.0.24,<0.1",
+]
+
+[project.optional-dependencies]
+dev = [
+  "httpx>=0.28.1,<0.29",
+  "pytest>=9.0.3,<10",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
