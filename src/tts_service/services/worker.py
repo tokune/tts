@@ -25,15 +25,15 @@ class WorkerService:
             job = self.job_service.claim_next_job(session)
             if job is None:
                 return False
-            job_input = self.job_service.get_job_input(session, job.id)
+            synthesis_input = self.job_service.resolve_synthesis_input(session, job)
 
             result = self.provider.synthesize(
                 SynthesisRequest(
                     job_id=job.id,
                     text=job.input_text,
                     voice_profile_id=job.voice_profile_id,
-                    reference_audio_path=job_input.temp_reference_audio_path if job_input else None,
-                    reference_text=job_input.temp_reference_text if job_input else None,
+                    reference_audio_path=synthesis_input.reference_audio_path,
+                    reference_text=synthesis_input.reference_text,
                 )
             )
             output_path = self.file_storage.save_job_output(job.id, result.audio_bytes, result.format)

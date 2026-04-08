@@ -22,6 +22,12 @@ class CreateJobInput:
     temp_reference_text: str | None = None
 
 
+@dataclass(slots=True)
+class ResolvedSynthesisInput:
+    reference_audio_path: str | None
+    reference_text: str | None
+
+
 class JobService:
     def create_job(self, session: Session, user_id: str, payload: CreateJobInput) -> TTSJob:
         voice = None
@@ -69,6 +75,26 @@ class JobService:
 
     def get_job_input(self, session: Session, job_id: str) -> JobInput | None:
         return session.scalar(select(JobInput).where(JobInput.job_id == job_id))
+
+    def resolve_synthesis_input(self, session: Session, job: TTSJob) -> ResolvedSynthesisInput:
+        job_input = self.get_job_input(session, job.id)
+        if job_input and (job_input.temp_reference_audio_path or job_input.temp_reference_text):
+            return ResolvedSynthesisInput(
+                reference_audio_path=job_input.temp_reference_audio_path,
+                reference_text=job_input.temp_reference_text,
+            )
+
+        if job.voice_profile_id is None:
+            return ResolvedSynthesisInput(reference_audio_path=None, reference_text=None)
+
+        voice = session.scalar(select(VoiceProfile).where(VoiceProfile.id == job.voice_profile_id))
+        if voice is None:
+            return ResolvedSynthesisInput(reference_audio_path=None, reference_text=None)
+
+        return ResolvedSynthesisInput(
+            reference_audio_path=voice.reference_audio_path,
+            reference_text=voice.reference_text,
+        )
 
     def claim_next_job(self, session: Session) -> TTSJob | None:
         job = session.scalar(select(TTSJob).where(TTSJob.status == "queued").order_by(TTSJob.created_at.asc()))
