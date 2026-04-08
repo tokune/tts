@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from io import BytesIO
+from pathlib import Path
 import wave
 from threading import Lock
 from typing import Any
@@ -20,9 +21,11 @@ class OfficialVoxCPMProvider(TTSProvider):
         kwargs: dict[str, Any] = {"text": request.text}
 
         if request.reference_audio_path:
+            kwargs["reference_wav_path"] = request.reference_audio_path
+        if request.request_mode == "ultimate_clone" and request.reference_audio_path:
             kwargs["prompt_wav_path"] = request.reference_audio_path
-        if request.reference_text:
-            kwargs["prompt_text"] = request.reference_text
+            if request.reference_text:
+                kwargs["prompt_text"] = request.reference_text
 
         result = model.generate(**kwargs)
         sample_rate = getattr(getattr(model, "tts_model", None), "sample_rate", 24000)
@@ -36,13 +39,22 @@ class OfficialVoxCPMProvider(TTSProvider):
         with self._lock:
             if self._model is not None:
                 return self._model
+            self._validate_model_path()
             try:
                 from voxcpm import VoxCPM  # type: ignore
             except ImportError as exc:
                 raise RuntimeError("voxcpm is not installed in this runtime. Install it on the GPU server.") from exc
 
-            self._model = VoxCPM.from_pretrained(self.model_path)
+            self._model = VoxCPM.from_pretrained(self.model_path, load_denoiser=False)
             return self._model
+
+    def _validate_model_path(self) -> None:
+        path = Path(self.model_path)
+        if not (path.is_absolute() or self.model_path.startswith(".")):
+            return
+        if path.is_dir():
+            return
+        raise RuntimeError(f"Configured VoxCPM model path does not exist or is not a directory: {self.model_path}")
 
     def _normalize_output(self, result: Any, default_sample_rate: int) -> tuple[bytes, int]:
         sample_rate = default_sample_rate

@@ -66,6 +66,8 @@ cd /srv/tts
 pip install -e .
 ```
 
+If you pull new code that adds or changes console scripts such as `tts-worker`, run `pip install -e .` again in the same environment so the entrypoint script is refreshed.
+
 For the official VoxCPM runtime:
 
 ```bash
@@ -76,7 +78,8 @@ Set:
 
 ```bash
 export TTS_SERVICE_PROVIDER=voxcpm
-export TTS_SERVICE_VOXCPM_MODEL_PATH=/srv/models/VoxCPM2-3B
+# Use either a real local model directory or a Hugging Face repo id such as openbmb/VoxCPM2
+export TTS_SERVICE_VOXCPM_MODEL_PATH=openbmb/VoxCPM2
 export TTS_SERVICE_DATABASE_URL=sqlite:////srv/tts/storage/app.db
 export TTS_SERVICE_STORAGE_ROOT=/srv/tts/storage
 export TTS_SERVICE_SYSTEM_VOICES_MANIFEST_PATH=/srv/tts/system_voices.json
@@ -98,6 +101,12 @@ For one-shot processing or debugging:
 
 ```bash
 tts-worker --once
+```
+
+If `tts-worker: command not found` appears, either the environment is not activated or the package has not been reinstalled since the script was added. In that case, re-run `pip install -e .` in the active environment, or start the worker through that interpreter directly:
+
+```bash
+python -m tts_service.worker.cli --poll
 ```
 
 Activate `voxcpm_env` in every shell that starts the API or worker process.

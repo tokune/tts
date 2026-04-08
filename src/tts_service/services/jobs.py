@@ -123,6 +123,27 @@ class JobService:
         session.refresh(job)
         return job
 
+    def mark_job_failed(
+        self,
+        session: Session,
+        job_id: str,
+        error_code: str,
+        error_message: str,
+    ) -> TTSJob:
+        job = session.scalar(select(TTSJob).where(TTSJob.id == job_id))
+        if job is None:
+            raise ValueError("job not found")
+
+        job.status = "failed"
+        job.error_code = error_code
+        job.error_message = error_message
+        job.finished_at = datetime.now(UTC)
+        session.add(job)
+        session.add(JobEvent(job_id=job.id, status="failed", message=error_message))
+        session.commit()
+        session.refresh(job)
+        return job
+
     def cancel_job(self, session: Session, user_id: str, job_id: str) -> TTSJob:
         job = self.get_job_for_user(session, user_id, job_id)
         if job is None:

@@ -27,15 +27,24 @@ class WorkerService:
                 return False
             synthesis_input = self.job_service.resolve_synthesis_input(session, job)
 
-            result = self.provider.synthesize(
-                SynthesisRequest(
-                    job_id=job.id,
-                    text=job.input_text,
-                    voice_profile_id=job.voice_profile_id,
-                    reference_audio_path=synthesis_input.reference_audio_path,
-                    reference_text=synthesis_input.reference_text,
+            try:
+                result = self.provider.synthesize(
+                    SynthesisRequest(
+                        job_id=job.id,
+                        text=job.input_text,
+                        voice_profile_id=job.voice_profile_id,
+                        request_mode=job.request_mode,
+                        reference_audio_path=synthesis_input.reference_audio_path,
+                        reference_text=synthesis_input.reference_text,
+                    )
                 )
-            )
-            output_path = self.file_storage.save_job_output(job.id, result.audio_bytes, result.format)
-            self.job_service.mark_job_succeeded(session, job.id, output_path)
+                output_path = self.file_storage.save_job_output(job.id, result.audio_bytes, result.format)
+                self.job_service.mark_job_succeeded(session, job.id, output_path)
+            except Exception as exc:
+                self.job_service.mark_job_failed(
+                    session,
+                    job.id,
+                    error_code="synthesis_failed",
+                    error_message=str(exc),
+                )
             return True
