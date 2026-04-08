@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import logging
 import sys
 from types import SimpleNamespace
 
@@ -31,15 +32,18 @@ def install_fake_voxcpm(monkeypatch, model: FakeModel, calls: list[dict[str, obj
     monkeypatch.setitem(sys.modules, "voxcpm", SimpleNamespace(VoxCPM=FakeVoxCPM))
 
 
-def test_official_provider_loads_voxcpm2_without_denoiser(monkeypatch) -> None:
+def test_official_provider_loads_voxcpm2_without_denoiser(monkeypatch, caplog) -> None:
     model = FakeModel()
     calls: list[dict[str, object]] = []
     install_fake_voxcpm(monkeypatch, model, calls)
     provider = OfficialVoxCPMProvider(model_path="openbmb/VoxCPM2", device_ids=[0])
 
+    caplog.set_level(logging.INFO, logger="tts_service.providers.official_voxcpm")
     provider._get_model()
 
     assert calls == [{"model_path": "openbmb/VoxCPM2", "load_denoiser": False}]
+    assert "loading VoxCPM model model_path=openbmb/VoxCPM2" in caplog.text
+    assert "loaded VoxCPM model model_path=openbmb/VoxCPM2" in caplog.text
 
 
 def test_official_provider_uses_reference_wav_path_for_clone(monkeypatch) -> None:

@@ -1,3 +1,6 @@
+import logging
+from types import SimpleNamespace
+
 from fastapi.testclient import TestClient
 
 from tts_service.main import create_app
@@ -31,6 +34,22 @@ def test_run_poll_loop_sleeps_when_queue_is_empty() -> None:
     assert sleep_calls == [0.25]
 
 
+def test_run_poll_loop_logs_when_queue_is_empty(caplog) -> None:
+    worker = SequenceWorker([False])
+    keep_running_states = iter([True, False])
+
+    caplog.set_level(logging.INFO, logger=cli.LOGGER.name)
+
+    cli.run_poll_loop(
+        worker=worker,
+        poll_interval=0.25,
+        should_continue=lambda: next(keep_running_states),
+        sleep=lambda _: None,
+    )
+
+    assert "worker idle; sleeping 0.25s" in caplog.text
+
+
 def test_main_runs_worker_once_when_requested(tmp_path, monkeypatch) -> None:
     app = create_app(
         {
@@ -61,7 +80,7 @@ def test_main_runs_worker_once_when_requested(tmp_path, monkeypatch) -> None:
 
 
 def test_main_polls_by_default(monkeypatch) -> None:
-    sentinel_worker = object()
+    sentinel_worker = SimpleNamespace(provider=SimpleNamespace(model_path=None))
     captured: dict[str, object] = {}
 
     monkeypatch.setattr(cli, "build_worker", lambda: sentinel_worker)
@@ -76,3 +95,21 @@ def test_main_polls_by_default(monkeypatch) -> None:
 
     assert exit_code == 0
     assert captured == {"worker": sentinel_worker, "poll_interval": 0.25}
+
+
+def test_main_logs_worker_startup(caplog, monkeypatch) -> None:
+    class DummyProvider:
+        model_path = "openbmb/VoxCPM2"
+
+    sentinel_worker = SimpleNamespace(provider=DummyProvider())
+
+    caplog.set_level(logging.INFO, logger=cli.LOGGER.name)
+    monkeypatch.setattr(cli, "build_worker", lambda: sentinel_worker)
+    monkeypatch.setattr(cli, "run_poll_loop", lambda **_: None)
+
+    exit_code = cli.main(["--poll-interval", "0.25"])
+
+    assert exit_code == 0
+    assert "starting worker mode=poll" in caplog.text
+    assert "provider=DummyProvider" in caplog.text
+    assert "model_path=openbmb/VoxCPM2" in caplog.text

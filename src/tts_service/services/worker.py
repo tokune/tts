@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+import logging
+
 from sqlalchemy.orm import Session, sessionmaker
 
 from tts_service.providers.base import SynthesisRequest, TTSProvider
 from tts_service.services.jobs import JobService
 from tts_service.storage.files import FileStorage
+
+LOGGER = logging.getLogger(__name__)
 
 
 class WorkerService:
@@ -26,6 +30,12 @@ class WorkerService:
             if job is None:
                 return False
             synthesis_input = self.job_service.resolve_synthesis_input(session, job)
+            LOGGER.info(
+                "processing job job_id=%s request_mode=%s voice_profile_id=%s",
+                job.id,
+                job.request_mode,
+                job.voice_profile_id,
+            )
 
             try:
                 result = self.provider.synthesize(
@@ -40,6 +50,7 @@ class WorkerService:
                 )
                 output_path = self.file_storage.save_job_output(job.id, result.audio_bytes, result.format)
                 self.job_service.mark_job_succeeded(session, job.id, output_path)
+                LOGGER.info("job succeeded job_id=%s output_audio_path=%s", job.id, output_path)
             except Exception as exc:
                 self.job_service.mark_job_failed(
                     session,
@@ -47,4 +58,5 @@ class WorkerService:
                     error_code="synthesis_failed",
                     error_message=str(exc),
                 )
+                LOGGER.exception("job failed job_id=%s error_code=synthesis_failed", job.id)
             return True

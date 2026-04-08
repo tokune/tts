@@ -97,6 +97,16 @@ Start a separate worker process using the same environment:
 tts-worker --poll
 ```
 
+The worker now emits text logs for startup, idle polling, job progress, failures, and official VoxCPM model loading. Example:
+
+```text
+2026-04-08 17:20:01,234 INFO tts_service.worker.cli starting worker mode=poll poll_interval=1.00s provider=OfficialVoxCPMProvider model_path=openbmb/VoxCPM2
+2026-04-08 17:20:05,912 INFO tts_service.providers.official_voxcpm loading VoxCPM model model_path=openbmb/VoxCPM2
+2026-04-08 17:22:41,101 INFO tts_service.providers.official_voxcpm loaded VoxCPM model model_path=openbmb/VoxCPM2
+2026-04-08 17:22:41,104 INFO tts_service.services.worker processing job job_id=123 request_mode=base_tts voice_profile_id=None
+2026-04-08 17:22:44,887 INFO tts_service.services.worker job succeeded job_id=123 output_audio_path=/srv/tts/storage/jobs/123/output.wav
+```
+
 For one-shot processing or debugging:
 
 ```bash

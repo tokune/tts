@@ -1,3 +1,4 @@
+import logging
 from io import BytesIO
 
 from fastapi.testclient import TestClient
@@ -100,7 +101,7 @@ def test_worker_uses_saved_voice_reference_audio_and_text(tmp_path) -> None:
     assert request.reference_text == "hello reference"
 
 
-def test_worker_claims_and_completes_queued_job(tmp_path) -> None:
+def test_worker_claims_and_completes_queued_job(tmp_path, caplog) -> None:
     app = create_app(
         {
             "database_url": f"sqlite:///{tmp_path}/app.db",
@@ -134,6 +135,7 @@ def test_worker_claims_and_completes_queued_job(tmp_path) -> None:
         job_service=app.state.job_service,
     )
 
+    caplog.set_level(logging.INFO, logger="tts_service.services.worker")
     processed = worker.process_next_job()
 
     assert processed is True
@@ -142,9 +144,11 @@ def test_worker_claims_and_completes_queued_job(tmp_path) -> None:
     assert detail.status_code == 200
     assert detail.json()["status"] == "succeeded"
     assert detail.json()["audio_url"].endswith("/audio")
+    assert f"processing job job_id={job['id']} request_mode=clone" in caplog.text
+    assert f"job succeeded job_id={job['id']}" in caplog.text
 
 
-def test_worker_marks_job_failed_when_provider_raises(tmp_path) -> None:
+def test_worker_marks_job_failed_when_provider_raises(tmp_path, caplog) -> None:
     app = create_app(
         {
             "database_url": f"sqlite:///{tmp_path}/app.db",
@@ -169,6 +173,7 @@ def test_worker_marks_job_failed_when_provider_raises(tmp_path) -> None:
         job_service=app.state.job_service,
     )
 
+    caplog.set_level(logging.INFO, logger="tts_service.services.worker")
     processed = worker.process_next_job()
 
     assert processed is True
@@ -179,3 +184,5 @@ def test_worker_marks_job_failed_when_provider_raises(tmp_path) -> None:
     assert detail.json()["error_code"] == "synthesis_failed"
     assert detail.json()["error_message"] == "model path is invalid"
     assert detail.json()["audio_url"] is None
+    assert f"processing job job_id={job['id']} request_mode=base_tts" in caplog.text
+    assert f"job failed job_id={job['id']} error_code=synthesis_failed" in caplog.text

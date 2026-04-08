@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 from io import BytesIO
+import logging
 from pathlib import Path
 import wave
 from threading import Lock
 from typing import Any
 
 from tts_service.providers.base import SynthesisRequest, SynthesisResult, TTSProvider
+
+LOGGER = logging.getLogger(__name__)
 
 
 class OfficialVoxCPMProvider(TTSProvider):
@@ -45,7 +48,9 @@ class OfficialVoxCPMProvider(TTSProvider):
             except ImportError as exc:
                 raise RuntimeError("voxcpm is not installed in this runtime. Install it on the GPU server.") from exc
 
+            LOGGER.info("loading VoxCPM model model_path=%s", self.model_path)
             self._model = VoxCPM.from_pretrained(self.model_path, load_denoiser=False)
+            LOGGER.info("loaded VoxCPM model model_path=%s", self.model_path)
             return self._model
 
     def _validate_model_path(self) -> None:

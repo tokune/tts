@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import logging
 import time
 from collections.abc import Callable, Sequence
 
@@ -8,6 +9,8 @@ from fastapi import FastAPI
 
 from tts_service.main import create_app
 from tts_service.services.worker import WorkerService
+
+LOGGER = logging.getLogger(__name__)
 
 
 def build_worker(app: FastAPI | None = None) -> WorkerService:
@@ -37,7 +40,26 @@ def run_poll_loop(
     while keep_running():
         processed = active_worker.process_next_job()
         if not processed:
+            LOGGER.info("worker idle; sleeping %.2fs", poll_interval)
             sleep(poll_interval)
+
+
+def configure_logging() -> None:
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(name)s %(message)s",
+    )
+
+
+def log_worker_startup(worker: WorkerService, *, mode: str, poll_interval: float) -> None:
+    provider = worker.provider
+    LOGGER.info(
+        "starting worker mode=%s poll_interval=%.2fs provider=%s model_path=%s",
+        mode,
+        poll_interval,
+        provider.__class__.__name__,
+        getattr(provider, "model_path", None),
+    )
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -55,13 +77,16 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
+    configure_logging()
     args = build_parser().parse_args(list(argv) if argv is not None else None)
     worker = build_worker()
 
     if args.once:
+        log_worker_startup(worker, mode="once", poll_interval=args.poll_interval)
         run_once(worker=worker)
         return 0
 
+    log_worker_startup(worker, mode="poll", poll_interval=args.poll_interval)
     run_poll_loop(worker=worker, poll_interval=args.poll_interval)
     return 0
 
