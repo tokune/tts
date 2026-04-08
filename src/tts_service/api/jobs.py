@@ -133,7 +133,7 @@ async def parse_job_request(request: Request, content_type: str, file_storage: F
         payload = CreateJobRequest.model_validate(await request.json())
         return CreateJobInput(text=payload.text, voice_profile_id=payload.voice_profile_id)
 
-    if content_type.startswith("multipart/form-data"):
+    if content_type.startswith("multipart/form-data") or content_type.startswith("application/x-www-form-urlencoded"):
         form = await request.form()
         text = str(form.get("text", "")).strip()
         if not text:
@@ -145,7 +145,7 @@ async def parse_job_request(request: Request, content_type: str, file_storage: F
 
         reference_audio = form.get("reference_audio")
         if reference_audio is None:
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="reference_audio is required")
+            return CreateJobInput(text=text)
 
         clone_mode = str(form.get("clone_mode", "clone"))
         reference_text = form.get("reference_text")
